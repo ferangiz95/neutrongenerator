@@ -23,89 +23,84 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file DetectorConstruction.hh
-/// \brief Definition of the DetectorConstruction class
 //
-// 
+/// \file B4/B4a/include/DetectorConstruction.hh
+/// \brief Definition of the B4::DetectorConstruction class
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-#ifndef DetectorConstruction_h
-#define DetectorConstruction_h 1
+#ifndef B4DetectorConstruction_h
+#define B4DetectorConstruction_h 1
 
 #include "G4VUserDetectorConstruction.hh"
+
+#include "G4Threading.hh"
 #include "globals.hh"
 
-class G4LogicalVolume;
-class G4Material;
-class DetectorMessenger;
+class G4VPhysicalVolume;
+class G4GlobalMagFieldMessenger;
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+namespace B4
+{
+
+/// Detector construction class to define materials and geometry.
+/// The calorimeter is a box made of a given number of layers. A layer consists
+/// of an absorber plate and of a detection gap. The layer is replicated.
+///
+/// Four parameters define the geometry of the calorimeter :
+///
+/// - the thickness of an absorber plate,
+/// - the thickness of a gap,
+/// - the number of layers,
+/// - the transverse size of the calorimeter (the input face is a square).
+///
+/// In addition a transverse uniform magnetic field is defined
+/// via G4GlobalMagFieldMessenger class.
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
   public:
-  
-    DetectorConstruction();
-   ~DetectorConstruction();
+    DetectorConstruction() = default;
+    ~DetectorConstruction() override = default;
 
   public:
-  
-    virtual G4VPhysicalVolume* Construct();
-    
-    void SetTargetLength (G4double value);
-    void SetTargetRadius (G4double value);
-    void SetTargetRadius2 (G4double value);
-    void SetTargetMaterial (G4String);
-    
-    void SetDetectorLength(G4double value);           
-    void SetDetectorThickness(G4double value);  
-    void SetDetectorMaterial(G4String);               
-                   
-    void PrintParameters();
-    
-  public:
-      
-    G4double GetTargetLength();
-    G4double GetTargetRadius();
-    G4double GetTargetRadius2();
-    G4Material* GetTargetMaterial();       
-    G4LogicalVolume* GetLogicTarget();
-    
-    G4double GetDetectorLength();
-    G4double GetDetectorThickness();
-    G4Material* GetDetectorMaterial();                 
-    G4LogicalVolume* GetLogicDetector();      
-                       
-  private:
-  
-    G4double           fTargetLength; 
-    G4double           fTargetRadius;
-    G4double           fTargetRadius2;
-    G4Material*        fTargetMater;
-    G4LogicalVolume*   fLogicTarget;
-                 
-    G4double           fDetectorLength;
-    G4double           fDetectorThickness;
-    G4Material*        fDetectorMater;
-    G4LogicalVolume*   fLogicDetector;
-               
-    G4double           fWorldLength;
-    G4double           fWorldRadius;
-    G4Material*        fWorldMater;     
-    G4VPhysicalVolume* fPhysiWorld;
-                
-    DetectorMessenger* fDetectorMessenger;
+    G4VPhysicalVolume* Construct() override;
+    void ConstructSDandField() override;
+
+    // get methods
+    //
+    const G4VPhysicalVolume* GetAbsorberPV() const;
+    const G4VPhysicalVolume* GetGapPV() const;
 
   private:
-    
-    void               DefineMaterials();
-    G4VPhysicalVolume* ConstructVolumes();     
+    // methods
+    //
+    void DefineMaterials();
+    G4VPhysicalVolume* DefineVolumes();
+
+    // data members
+    //
+    static G4ThreadLocal G4GlobalMagFieldMessenger* fMagFieldMessenger;
+    // magnetic field messenger
+
+    G4VPhysicalVolume* fAbsorberPV = nullptr;  // the absorber physical volume
+    G4VPhysicalVolume* fGapPV = nullptr;  // the gap physical volume
+
+    G4bool fCheckOverlaps = true;  // option to activate checking of volumes overlaps
 };
+
+// inline functions
+
+inline const G4VPhysicalVolume* DetectorConstruction::GetAbsorberPV() const
+{
+  return fAbsorberPV;
+}
+
+inline const G4VPhysicalVolume* DetectorConstruction::GetGapPV() const
+{
+  return fGapPV;
+}
+
+}  // namespace B4
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-
 #endif
-

@@ -24,54 +24,45 @@
 // ********************************************************************
 //
 //
-/// \file ActionInitialization.cc
-/// \brief Implementation of the ActionInitialization class
+/// \file B4/B4a/src/ActionInitialization.cc
+/// \brief Implementation of the B4a::ActionInitialization class
 
 #include "ActionInitialization.hh"
+
+#include "EventAction.hh"
 #include "PrimaryGeneratorAction.hh"
 #include "RunAction.hh"
-#include "EventAction.hh"
-#include "TrackingAction.hh"
 #include "SteppingAction.hh"
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+using namespace B4;
 
-ActionInitialization::ActionInitialization(DetectorConstruction* detector)
- : G4VUserActionInitialization(),
-   fDetector(detector)
-{}
+namespace B4a
+{
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-ActionInitialization::~ActionInitialization()
+ActionInitialization::ActionInitialization(DetectorConstruction* detConstruction)
+  : fDetConstruction(detConstruction)
 {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void ActionInitialization::BuildForMaster() const
 {
-  RunAction* runAction = new RunAction(fDetector, 0);
-  SetUserAction(runAction);
+  SetUserAction(new RunAction);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void ActionInitialization::Build() const
 {
-  PrimaryGeneratorAction* primary = new PrimaryGeneratorAction();
-  SetUserAction(primary);
-    
-  RunAction* runAction = new RunAction(fDetector, primary );
-  SetUserAction(runAction);
-  
-  EventAction* event = new EventAction();
-  SetUserAction(event);  
-  
-  TrackingAction* trackingAction = new TrackingAction(fDetector);
-  SetUserAction(trackingAction);
-  
-  SteppingAction* steppingAction = new SteppingAction(fDetector, event);
-  SetUserAction(steppingAction);
-}  
+  SetUserAction(new PrimaryGeneratorAction);
+  SetUserAction(new RunAction);
+  auto eventAction = new EventAction;
+  SetUserAction(eventAction);
+  SetUserAction(new SteppingAction(fDetConstruction, eventAction));
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+}  // namespace B4a

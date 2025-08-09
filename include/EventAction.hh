@@ -23,38 +23,63 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file EventAction.hh
-/// \brief Definition of the EventAction class
 //
-// 
+/// \file B4/B4a/include/EventAction.hh
+/// \brief Definition of the B4a::EventAction class
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-#ifndef EventAction_h
-#define EventAction_h 1
+#ifndef B4aEventAction_h
+#define B4aEventAction_h 1
 
 #include "G4UserEventAction.hh"
 #include "globals.hh"
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+class G4Event;
+
+namespace B4a
+{
+
+/// Event action class
+///
+/// It defines data members to hold the energy deposit and track lengths
+/// of charged particles in Absober and Gap layers:
+/// - fEnergyAbs, fEnergyGap, fTrackLAbs, fTrackLGap
+/// which are collected step by step via the functions
+/// - AddAbs(), AddGap()
 
 class EventAction : public G4UserEventAction
 {
   public:
-    EventAction();
-   ~EventAction();
+    EventAction() = default;
+    ~EventAction() override = default;
 
-  public:
-    virtual void BeginOfEventAction(const G4Event*);
-    virtual void   EndOfEventAction(const G4Event*);
-    
-    void AddEdep (G4double Edep);
-                
+    void BeginOfEventAction(const G4Event* event) override;
+    void EndOfEventAction(const G4Event* event) override;
+
+    void AddAbs(G4double de, G4double dl);
+    void AddGap(G4double de, G4double dl);
+
   private:
-    G4double fEdep;   
+    G4double fEnergyAbs = 0.;
+    G4double fEnergyGap = 0.;
+    G4double fTrackLAbs = 0.;
+    G4double fTrackLGap = 0.;
 };
 
-#endif
+// inline functions
 
-    
+inline void EventAction::AddAbs(G4double de, G4double dl)
+{
+  fEnergyAbs += de;
+  fTrackLAbs += dl;
+}
+
+inline void EventAction::AddGap(G4double de, G4double dl)
+{
+  fEnergyGap += de;
+  fTrackLGap += dl;
+}
+
+}  // namespace B4a
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+#endif

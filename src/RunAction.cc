@@ -23,91 +23,115 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file RunAction.cc
-/// \brief Implementation of the RunAction class
 //
-// 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+/// \file B4/B4a/src/RunAction.cc
+/// \brief Implementation of the B4::RunAction class
 
 #include "RunAction.hh"
-#include "Run.hh"
-#include "DetectorConstruction.hh"
-#include "PrimaryGeneratorAction.hh"
-#include "HistoManager.hh"
 
-#include "G4Run.hh"
+#include "G4AnalysisManager.hh"
 #include "G4RunManager.hh"
-#include "G4UnitsTable.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4UnitsTable.hh"
+#include "globals.hh"
 
-#include "Randomize.hh"
-#include <iomanip>
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-RunAction::RunAction(DetectorConstruction* det, PrimaryGeneratorAction* prim)
-  : G4UserRunAction(),
-    fDetector(det), fPrimary(prim), fRun(0), fHistoManager(0)
+namespace B4
 {
- // Book predefined histograms
- fHistoManager = new HistoManager(); 
-}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-RunAction::~RunAction()
+RunAction::RunAction()
 {
- delete fHistoManager;
-}
+  // set printing event number per each event
+  G4RunManager::GetRunManager()->SetPrintProgress(1);
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+  // Create analysis manager
+  // The choice of the output format is done via the specified
+  // file extension.
+  auto analysisManager = G4AnalysisManager::Instance();
 
-G4Run* RunAction::GenerateRun()
-{ 
-  fRun = new Run(fDetector); 
-  return fRun;
-}
+  // Create directories
+  // analysisManager->SetHistoDirectoryName("histograms");
+  // analysisManager->SetNtupleDirectoryName("ntuple");
+  analysisManager->SetVerboseLevel(1);
+  analysisManager->SetNtupleMerging(true);
+  // Note: merging ntuples is available only with Root output
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void RunAction::BeginOfRunAction(const G4Run*)
-{    
-  // save Rndm status
-  G4RunManager::GetRunManager()->SetRandomNumberStore(false);
-  if (isMaster) G4Random::showEngineStatus();
-  
-  // keep run condition
-  if (fPrimary) { 
-    G4ParticleDefinition* particle 
-      = fPrimary->GetParticleGun()->GetParticleDefinition();
-    G4double energy = fPrimary->GetParticleGun()->GetParticleEnergy();
-    fRun->SetPrimary(particle, energy);
-  }
-             
-  //histograms
+  // Book histograms, ntuple
   //
-  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-  if ( analysisManager->IsActive() ) {
-    analysisManager->OpenFile();
-  }  
+
+  // Creating histograms
+  analysisManager->CreateH1("Eabs", "Edep in absorber", 110, 0., 330 * MeV);
+  analysisManager->CreateH1("Egap", "Edep in gap", 1000, 0., 100 * MeV);
+  analysisManager->CreateH1("Labs", "trackL in absorber", 100, 0., 500 * cm);
+  analysisManager->CreateH1("Lgap", "trackL in gap", 100, 0., 500 * cm);
+
+  // Creating ntuple
+  //
+  analysisManager->CreateNtuple("B4", "Edep and TrackL");
+  analysisManager->CreateNtupleDColumn("Eabs");
+  analysisManager->CreateNtupleDColumn("Egap");
+  analysisManager->CreateNtupleDColumn("Labs");
+  analysisManager->CreateNtupleDColumn("Lgap");
+  analysisManager->FinishNtuple();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void RunAction::EndOfRunAction(const G4Run*)
+void RunAction::BeginOfRunAction(const G4Run* /*run*/)
 {
-  if (isMaster) fRun->EndOfRun();    
-  
-  //save histograms      
-  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-  if ( analysisManager->IsActive() ) {
-    analysisManager->Write();
-    analysisManager->CloseFile();
-  }
-      
-  // show Rndm status
-  if (isMaster) G4Random::showEngineStatus();
+  // inform the runManager to save random number seed
+  // G4RunManager::GetRunManager()->SetRandomNumberStore(true);
+
+  // Get analysis manager
+  auto analysisManager = G4AnalysisManager::Instance();
+
+  // Open an output file
+  //
+  G4String fileName = "B4.root";
+  // Other supported output types:
+  // G4String fileName = "B4.csv";
+  // G4String fileName = "B4.hdf5";
+  // G4String fileName = "B4.xml";
+  analysisManager->OpenFile(fileName);
+  G4cout << "Using " << analysisManager->GetType() << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void RunAction::EndOfRunAction(const G4Run* /*run*/)
+{
+  // print histogram statistics
+  //
+  auto analysisManager = G4AnalysisManager::Instance();
+  if (analysisManager->GetH1(1)) {
+    G4cout << G4endl << " ----> print histograms statistic ";
+    if (isMaster) {
+      G4cout << "for the entire run " << G4endl << G4endl;
+    }
+    else {
+      G4cout << "for the local thread " << G4endl << G4endl;
+    }
+
+    G4cout << " EAbs : mean = " << G4BestUnit(analysisManager->GetH1(0)->mean(), "Energy")
+           << " rms = " << G4BestUnit(analysisManager->GetH1(0)->rms(), "Energy") << G4endl;
+
+    G4cout << " EGap : mean = " << G4BestUnit(analysisManager->GetH1(1)->mean(), "Energy")
+           << " rms = " << G4BestUnit(analysisManager->GetH1(1)->rms(), "Energy") << G4endl;
+
+    G4cout << " LAbs : mean = " << G4BestUnit(analysisManager->GetH1(2)->mean(), "Length")
+           << " rms = " << G4BestUnit(analysisManager->GetH1(2)->rms(), "Length") << G4endl;
+
+    G4cout << " LGap : mean = " << G4BestUnit(analysisManager->GetH1(3)->mean(), "Length")
+           << " rms = " << G4BestUnit(analysisManager->GetH1(3)->rms(), "Length") << G4endl;
+  }
+
+  // save histograms & ntuple
+  //
+  analysisManager->Write();
+  analysisManager->CloseFile();
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+}  // namespace B4

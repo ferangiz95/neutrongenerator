@@ -1,0 +1,42 @@
+#Initialize kernel
+/run/initialize
+/vis/viewer/set/autoRefresh true
+/vis/open OGL 1200x800-0+0
+/vis/drawVolume
+/vis/viewer/set/background black
+/vis/viewer/zoom 1
+/vis/viewer/set/style wireframe
+/vis/viewer/set/auxiliaryEdge true
+/vis/viewer/set/lineSegmentsPerCircle 100
+/vis/viewer/set/hiddenMarker
+/vis/viewer/set/viewpointThetaPhi 0. 45.
+/tracking/storeTrajectory 1
+/vis/scene/create
+/vis/scene/add/userAction
+/vis/sceneHandler/attach
+/vis/scene/add/trajectories
+/vis/scene/add/trajectories rich
+# Draw hits at end of event:
+/vis/scene/add/axes 0 0 0 1 m
+/vis/filtering/trajectories/create/particleFilter
+/vis/filtering/trajectories/particleFilter-0/add mu+
+/vis/modeling/trajectories/create/drawByParticleID
+/vis/modeling/trajectories/drawByParticleID-0/default/setDrawStepPts true
+/vis/modeling/trajectories/list
+/vis/modeling/trajectories/drawByParticleID-0/set mu+ white
+/vis/scene/endOfEventAction accumulate
+/vis/reviewKeptEvents
+#/vis/scene/add/hits
+/vis/sceneHandler/attach
+/vis/scene/add/trajectories
+/vis/scene/add/trajectories rich
+# muon 300 MeV in direction (0.,0.,1.)
+#/gun/particle mu+
+#/gun/energy 1 GeV
+#
+# verbosity
+/tracking/verbose 0
+/gun/number 1
+/run/beamOn 1000
+
+

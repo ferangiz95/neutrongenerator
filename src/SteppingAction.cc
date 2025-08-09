@@ -23,58 +23,57 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file SteppingAction.cc
-/// \brief Implementation of the SteppingAction class
 //
-// 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+/// \file B4/B4a/src/SteppingAction.cc
+/// \brief Implementation of the B4a::SteppingAction class
 
 #include "SteppingAction.hh"
 
 #include "DetectorConstruction.hh"
-#include "Run.hh"
 #include "EventAction.hh"
-#include "HistoManager.hh"
 
-#include "G4RunManager.hh"
-#include "G4SystemOfUnits.hh"
-#include "G4UnitsTable.hh"
-                           
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+#include "G4Step.hh"
+#include "globals.hh"
 
-SteppingAction::SteppingAction(DetectorConstruction* det, EventAction* event)
-: G4UserSteppingAction(), fDetector(det), fEventAction(event)
-{ }
+using namespace B4;
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-SteppingAction::~SteppingAction()
-{ }
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void SteppingAction::UserSteppingAction(const G4Step* aStep)
+namespace B4a
 {
-  Run* run = static_cast<Run*>(
-        G4RunManager::GetRunManager()->GetNonConstCurrentRun());    
-  
-  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+SteppingAction::SteppingAction(const DetectorConstruction* detConstruction,
+                               EventAction* eventAction)
+  : fDetConstruction(detConstruction), fEventAction(eventAction)
+{}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void SteppingAction::UserSteppingAction(const G4Step* step)
+{
+  // Collect energy and track length step by step
 
   // get volume of the current step
-  //
-  auto Volume = aStep->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
-  // 
-  const G4StepPoint* endPoint = aStep->GetPostStepPoint();
-  
+  auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
+
   // energy deposit
-  //
-  G4double edepStep = aStep->GetTotalEnergyDeposit();
-  if (edepStep <= 0.) return;
-  fEventAction->AddEdep(edepStep);
-  
-  //fill ntuple id = 2
-  G4int id = 2;   
-  analysisManager->FillNtupleDColumn(id,0, edepStep);
-  analysisManager->AddNtupleRow(id);      
+  auto edep = step->GetTotalEnergyDeposit();
+
+  // step length
+  G4double stepLength = 0.;
+  if (step->GetTrack()->GetDefinition()->GetPDGCharge() != 0.) {
+    stepLength = step->GetStepLength();
+  }
+
+  if (volume == fDetConstruction->GetAbsorberPV()) {
+    fEventAction->AddAbs(edep, stepLength);
+  }
+
+  if (volume == fDetConstruction->GetGapPV()) {
+    fEventAction->AddGap(edep, stepLength);
+  }
 }
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+}  // namespace B4a

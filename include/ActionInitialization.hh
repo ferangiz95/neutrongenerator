@@ -24,32 +24,37 @@
 // ********************************************************************
 //
 //
-/// \file ActionInitialization.hh
-/// \brief Definition of the ActionInitialization class
+/// \file B4/B4a/include/ActionInitialization.hh
+/// \brief Definition of the B4a::ActionInitialization class
 
-#ifndef ActionInitialization_h
-#define ActionInitialization_h 1
+#ifndef B4aActionInitialization_h
+#define B4aActionInitialization_h 1
 
 #include "G4VUserActionInitialization.hh"
 
+namespace B4
+{
 class DetectorConstruction;
+}
+
+namespace B4a
+{
 
 /// Action initialization class.
-///
 
 class ActionInitialization : public G4VUserActionInitialization
 {
   public:
-    ActionInitialization(DetectorConstruction* detector);
-    virtual ~ActionInitialization();
+    ActionInitialization(B4::DetectorConstruction*);
+    ~ActionInitialization() override = default;
 
-    virtual void BuildForMaster() const;
-    virtual void Build() const;
-   
+    void BuildForMaster() const override;
+    void Build() const override;
+
   private:
-    DetectorConstruction* fDetector;
+    B4::DetectorConstruction* fDetConstruction = nullptr;
 };
 
-#endif
+}  // namespace B4a
 
-    
+#endif
